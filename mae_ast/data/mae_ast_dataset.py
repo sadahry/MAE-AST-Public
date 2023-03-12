@@ -51,6 +51,20 @@ def load_audio(manifest_path, max_keep, min_keep):
 
 class MAE_AST_Dataset(FairseqDataset):
     def __init__(
+        self,
+        manifest_path: str,
+        sample_rate: float,
+        max_keep_sample_size: Optional[int] = None,
+        min_keep_sample_size: Optional[int] = None,
+        max_sample_size: Optional[int] = None,
+        shuffle: bool = True,
+        pad_audio: bool = False,
+        normalize: bool = False,
+        random_crop: bool = False,
+        feature_type: str = "wav",
+        feature_dim: int = 36,
+        deltas: bool = True,
+        feature_rate: int = 100,
             self,
             manifest_path: str,
             sample_rate: float,
@@ -65,11 +79,27 @@ class MAE_AST_Dataset(FairseqDataset):
             feature_dim: int = 36,
             deltas: bool = True,
             feature_rate: int = 100,
+        self,
+        manifest_path: str,
+        sample_rate: float,
+        max_keep_sample_size: Optional[int] = None,
+        min_keep_sample_size: Optional[int] = None,
+        max_sample_size: Optional[int] = None,
+        shuffle: bool = True,
+        pad_audio: bool = False,
+        normalize: bool = False,
+        random_crop: bool = False,
+        feature_type: str = "wav",
+        feature_dim: int = 36,
+        deltas: bool = True,
+        feature_rate: int = 100,
     ):
         self.audio_root, self.audio_names, inds, tot, self.sizes = load_audio(
             manifest_path, max_keep_sample_size, min_keep_sample_size
         )
+        assert feature_type in ["wav", "spectrogram", "fbank", "mfcc"], feature_type
         assert feature_type in ['wav', 'spectrogram', 'fbank', 'mfcc'], feature_type
+        assert feature_type in ["wav", "spectrogram", "fbank", "mfcc"], feature_type
         self.feature_rate = feature_rate
         self.feature_type = feature_type
         self.feature_dim = feature_dim
@@ -93,7 +123,9 @@ class MAE_AST_Dataset(FairseqDataset):
         import av
 
         wav_path = os.path.join(self.audio_root, self.audio_names[index])
+        if wav_path.endswith(".mkv"):
         if (wav_path.endswith(".mkv")):
+        if wav_path.endswith(".mkv"):
             with av.open(wav_path, metadata_errors="ignore") as container:
                 decode = container.decode(audio=0)
                 first_frame = next(decode)
@@ -161,9 +193,11 @@ class MAE_AST_Dataset(FairseqDataset):
             feat_dim = self.feature_dim * 3 if self.deltas else self.feature_dim
             collated_audios = audios[0].new_zeros(len(audios), audio_size, feat_dim)
 
+        padding_mask = torch.BoolTensor(collated_audios.shape[:2]).fill_(False)
         padding_mask = (
             torch.BoolTensor(collated_audios.shape[:2]).fill_(False)
         )
+        padding_mask = torch.BoolTensor(collated_audios.shape[:2]).fill_(False)
         audio_starts = [0 for _ in audios]
         for i, audio in enumerate(audios):
             diff = len(audio) - audio_size
@@ -171,7 +205,12 @@ class MAE_AST_Dataset(FairseqDataset):
                 collated_audios[i] = audio
             elif diff < 0:
                 assert self.pad_audio
-                collated_audios[i] = torch.cat([audio, audio.new_full((-diff,), 0.0)])
+                collated_audios[i] = torch.cat(
+                    [
+                        audio,
+                        audio.new_zeros(audio.shape)[:-diff],
+                    ]
+                )
                 padding_mask[i, diff:] = True
             else:
                 collated_audios[i], audio_starts[i] = self.crop_to_max_size(
@@ -220,15 +259,19 @@ class MAE_AST_Dataset(FairseqDataset):
         wav = wav.view(1, -1)
         if self.feature_type == "spectrogram":
             feat = torchaudio.compliance.kaldi.spectrogram(
+                waveform=wav, sample_frequency=self.sample_rate
                 waveform=wav,
                 sample_frequency=self.sample_rate
+                waveform=wav, sample_frequency=self.sample_rate
             )  # (time, freq)
         elif self.feature_type == "fbank":
             feat = torchaudio.compliance.kaldi.fbank(
                 waveform=wav,
                 sample_frequency=self.sample_rate,
                 use_energy=False,
+                num_mel_bins=self.feature_dim,
                 num_mel_bins=self.feature_dim
+                num_mel_bins=self.feature_dim,
             )  # (time, freq)
         else:
             feat = torchaudio.compliance.kaldi.mfcc(
@@ -236,7 +279,9 @@ class MAE_AST_Dataset(FairseqDataset):
                 sample_frequency=self.sample_rate,
                 use_energy=False,
             )  # (time, freq)
+        feat = feat[:, : self.feature_dim]
         feat = feat[:, :self.feature_dim]
+        feat = feat[:, : self.feature_dim]
         if self.deltas:
             feat = feat.transpose(0, 1)  # (freq, time)
             deltas = torchaudio.functional.compute_deltas(feat)
