@@ -851,6 +851,7 @@ class SinusoidalPositionalEncoding(nn.Module):
         Args:
             x: Tensor, shape [bsz, seq_len, embedding_dim]
         """
-        pe = self.pe[:, : x.shape[1]].repeat((padding_mask.shape[0], 1, 1))
-        pe[padding_mask] = 0.0
+        pe = self.pe[:, : x.shape[1]].repeat((x.shape[0], 1, 1))
+        if padding_mask is not None:
+            pe[padding_mask] = 0.0
         return pe
