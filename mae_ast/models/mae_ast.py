@@ -20,6 +20,7 @@ from fairseq.models.wav2vec.wav2vec2 import (
     ConvFeatureExtractionModel,
     # TransformerEncoder,
 )
+
 # from fairseq.modules import (
 #     SinusoidalPositionalEmbedding
 # )
@@ -41,22 +42,26 @@ class MAE_AST_Config(FairseqDataclass):
     ast_kernel_size_chan: int = field(
         default=16,
         metadata={
-            "help": "When using reconstruction on image data, this sets the kernel size for channels (size and stride must be identical for reconstruction) used for masked features. Default 16, see ast_models.py"}
+            "help": "When using reconstruction on image data, this sets the kernel size for channels (size and stride must be identical for reconstruction) used for masked features. Default 16, see ast_models.py"
+        },
     )
     ast_kernel_size_time: int = field(
         default=16,
         metadata={
-            "help": "When using reconstruction on image data, this sets the kernel size for time (size and stride must be identical for reconstruction) used for masked features. Default 16, see ast_models.py."}
+            "help": "When using reconstruction on image data, this sets the kernel size for time (size and stride must be identical for reconstruction) used for masked features. Default 16, see ast_models.py."
+        },
     )
     ast_kernel_stride_chan: int = field(
         default=16,
         metadata={
-            "help": "When using reconstruction on image data, this sets the kernel stride for channels (size and stride must be identical for reconstruction) used for masked features. Default 16, see ast_models.py"}
+            "help": "When using reconstruction on image data, this sets the kernel stride for channels (size and stride must be identical for reconstruction) used for masked features. Default 16, see ast_models.py"
+        },
     )
     ast_kernel_stride_time: int = field(
         default=16,
         metadata={
-            "help": "When using reconstruction on image data, this sets the kernel stride for time (size and stride must be identical for reconstruction) used for masked features. Default 16, see ast_models.py."}
+            "help": "When using reconstruction on image data, this sets the kernel stride for time (size and stride must be identical for reconstruction) used for masked features. Default 16, see ast_models.py."
+        },
     )
 
     # Encoder and general transformer settings
@@ -89,7 +94,8 @@ class MAE_AST_Config(FairseqDataclass):
     use_post_enc_proj: bool = field(
         default=False,
         metadata={
-            "help": "Linear projection on the encoder output. Required if decoder embed dim != encoder embed dim"}
+            "help": "Linear projection on the encoder output. Required if decoder embed dim != encoder embed dim"
+        },
     )
     decoder_embed_dim: int = field(
         default=768, metadata={"help": "decoder embedding dimension"}
@@ -99,7 +105,9 @@ class MAE_AST_Config(FairseqDataclass):
     )
     decoder_layerdrop: float = field(
         default=0.0,
-        metadata={"help": "probability of dropping a decoder transformer layer. The decoder is shallow, so this should typically be 0"},
+        metadata={
+            "help": "probability of dropping a decoder transformer layer. The decoder is shallow, so this should typically be 0"
+        },
     )
 
     # Dropouts
@@ -127,7 +135,9 @@ class MAE_AST_Config(FairseqDataclass):
     # Overall Masking Settings
     random_mask_prob: float = field(
         default=0.75,
-        metadata={"help": "Probability of a given token being masked. Exact use depends on mask type"}
+        metadata={
+            "help": "Probability of a given token being masked. Exact use depends on mask type"
+        },
     )
 
     # Wav2Vec2-like Masking settings
@@ -140,8 +150,8 @@ class MAE_AST_Config(FairseqDataclass):
         default=0,
         metadata={
             "help": "secondary mask argument "
-                    "(used for more complex distributions), "
-                    "see help in compute_mask_indicesh"
+            "(used for more complex distributions), "
+            "see help in compute_mask_indicesh"
         },
     )
     no_mask_overlap: bool = field(
@@ -171,32 +181,34 @@ class MAE_AST_Config(FairseqDataclass):
     # positional embeddings
     max_token_length: int = field(
         default=48000,
-        metadata={"help": "the longest input sequence length, used for sinusoidal positional embedding"}
+        metadata={
+            "help": "the longest input sequence length, used for sinusoidal positional embedding"
+        },
     )
     enc_sine_pos: bool = field(
         default=False,
-        metadata={"help": "sinusoidal positional embeddings for encoder input"}
+        metadata={"help": "sinusoidal positional embeddings for encoder input"},
     )
     enc_conv_pos: bool = field(
         default=False,
-        metadata={"help": "convnet positional embeddings for encoder input"}
+        metadata={"help": "convnet positional embeddings for encoder input"},
     )
     dec_sine_pos: bool = field(
         default=False,
-        metadata={"help": "sinusoidal positional embeddings for decoder input"}
+        metadata={"help": "sinusoidal positional embeddings for decoder input"},
     )
     dec_conv_pos: bool = field(
         default=False,
-        metadata={"help": "convnet positional embeddings for decoder input"}
+        metadata={"help": "convnet positional embeddings for decoder input"},
     )
 
 
 @register_model("mae_ast", dataclass=MAE_AST_Config)
 class MAE_AST(BaseFairseqModel):
     def __init__(
-            self,
-            cfg: MAE_AST_Config,
-            task_cfg: MAE_AST_Pretraining_Task,
+        self,
+        cfg: MAE_AST_Config,
+        task_cfg: MAE_AST_Pretraining_Task,
     ) -> None:
         super().__init__()
         logger.info(f"MAEModel Config: {cfg}")
@@ -204,13 +216,20 @@ class MAE_AST(BaseFairseqModel):
         self.task_cfg = task_cfg
 
         self.feature_extractor = nn.Identity()
-        self.post_extract_proj = nn.Linear(cfg.ast_kernel_size_time * cfg.ast_kernel_size_chan, cfg.encoder_embed_dim)
+        self.post_extract_proj = nn.Linear(
+            cfg.ast_kernel_size_time * cfg.ast_kernel_size_chan, cfg.encoder_embed_dim
+        )
         self.layer_norm = LayerNorm(task_cfg.feature_dim)
         self.batch_norm = nn.BatchNorm2d(num_features=1, affine=False)
-        self.unfold = nn.Unfold(kernel_size=(cfg.ast_kernel_size_time, cfg.ast_kernel_size_chan),
-                                stride=(cfg.ast_kernel_stride_time, cfg.ast_kernel_stride_chan))
+        self.unfold = nn.Unfold(
+            kernel_size=(cfg.ast_kernel_size_time, cfg.ast_kernel_size_chan),
+            stride=(cfg.ast_kernel_stride_time, cfg.ast_kernel_stride_chan),
+        )
 
-        self.is_batched_mask = self.task_cfg.mask_type == 'random_mask_batched' or self.task_cfg.mask_type == 'chunk_patch'
+        self.is_batched_mask = (
+            self.task_cfg.mask_type == "random_mask_batched"
+            or self.task_cfg.mask_type == "chunk_patch"
+        )
 
         self.mask_selection = cfg.mask_selection
         self.mask_other = cfg.mask_other
@@ -222,33 +241,46 @@ class MAE_AST(BaseFairseqModel):
 
         self.feature_grad_mult = cfg.feature_grad_mult
 
-        self.encoder_mask_emb = nn.Parameter(torch.FloatTensor(cfg.encoder_embed_dim).uniform_())
+        self.encoder_mask_emb = nn.Parameter(
+            torch.FloatTensor(cfg.encoder_embed_dim).uniform_()
+        )
 
         if self.cfg.enc_conv_pos:
             self.enc_conv_pos_embed = ConvPosEmbed(cfg)
         if self.cfg.enc_sine_pos:
-            self.enc_sine_pos_embed = SinusoidalPositionalEncoding(d_model=self.cfg.encoder_embed_dim, max_len=self.cfg.max_token_length)
+            self.enc_sine_pos_embed = SinusoidalPositionalEncoding(
+                d_model=self.cfg.encoder_embed_dim, max_len=self.cfg.max_token_length
+            )
 
         self.encoder = TransformerEncoder(cfg)
 
         if self.cfg.use_post_enc_proj:
-            self.post_enc_proj = nn.Linear(self.cfg.encoder_embed_dim, self.cfg.decoder_embed_dim)
+            self.post_enc_proj = nn.Linear(
+                self.cfg.encoder_embed_dim, self.cfg.decoder_embed_dim
+            )
         else:
-            assert self.cfg.decoder_embed_dim == self.cfg.encoder_embed_dim, "Need post_enc_projection if encoder and decoder embed dims differ"
+            assert (
+                self.cfg.decoder_embed_dim == self.cfg.encoder_embed_dim
+            ), "Need post_enc_projection if encoder and decoder embed dims differ"
 
         self.decoder_mask_emb = nn.Parameter(
-            torch.FloatTensor(cfg.decoder_embed_dim).uniform_())
+            torch.FloatTensor(cfg.decoder_embed_dim).uniform_()
+        )
         if self.cfg.dec_conv_pos:
             self.dec_conv_pos_embed = ConvPosEmbed(cfg)
         if self.cfg.dec_sine_pos:
-            self.dec_sine_pos_embed = SinusoidalPositionalEncoding(d_model=self.cfg.decoder_embed_dim, max_len=self.cfg.max_token_length)
+            self.dec_sine_pos_embed = SinusoidalPositionalEncoding(
+                d_model=self.cfg.decoder_embed_dim, max_len=self.cfg.max_token_length
+            )
         # decoder uses the same set of params as the encoders, except for the number of layers and width
         self.decoder = TransformerEncoder(cfg, decoder=True)
 
-        self.final_proj_reconstruction = nn.Linear(cfg.decoder_embed_dim,
-                                                   cfg.ast_kernel_size_time * cfg.ast_kernel_size_chan)
-        self.final_proj_classification = nn.Linear(cfg.decoder_embed_dim,
-                                                   cfg.ast_kernel_size_time * cfg.ast_kernel_size_chan)
+        self.final_proj_reconstruction = nn.Linear(
+            cfg.decoder_embed_dim, cfg.ast_kernel_size_time * cfg.ast_kernel_size_chan
+        )
+        self.final_proj_classification = nn.Linear(
+            cfg.decoder_embed_dim, cfg.ast_kernel_size_time * cfg.ast_kernel_size_chan
+        )
 
         assert self.task_cfg.feature_type != "wav"
 
@@ -276,22 +308,24 @@ class MAE_AST(BaseFairseqModel):
         return features
 
     def forward_padding_mask(
-            self,
-            features: torch.Tensor,
-            padding_mask: torch.Tensor,
-            feature_dim=128,
+        self,
+        features: torch.Tensor,
+        padding_mask: torch.Tensor,
+        feature_dim=128,
     ) -> torch.Tensor:
-        if (padding_mask[:, -1].sum() == 0):  # Fast exit during training if not necessary
+        if padding_mask[:, -1].sum() == 0:  # Fast exit during training if not necessary
             return padding_mask.new_zeros(features.shape[:2])
 
         non_zero_count = padding_mask.size(-1) - padding_mask.sum(dim=-1)
         num_patches_over_channel = feature_dim // self.cfg.ast_kernel_size_chan
-        padding_mask_indices = (((non_zero_count - 1) // self.cfg.ast_kernel_size_time) + 1) * num_patches_over_channel
+        padding_mask_indices = (
+            ((non_zero_count - 1) // self.cfg.ast_kernel_size_time) + 1
+        ) * num_patches_over_channel
         new_padding_mask = padding_mask.new_zeros(features.shape[:2])
 
         for i in range(new_padding_mask.size(0)):
             if padding_mask_indices[i] < new_padding_mask.size(-1):
-                new_padding_mask[i, padding_mask_indices[i]:] = True
+                new_padding_mask[i, padding_mask_indices[i] :] = True
 
         return new_padding_mask
 
@@ -302,9 +336,11 @@ class MAE_AST(BaseFairseqModel):
         retained_idx = []
         masked_idx = []
 
-        if self.task_cfg.mask_type == 'retain_spans':
+        if self.task_cfg.mask_type == "retain_spans":
             num_retained_tokens = 0
-            while num_retained_tokens == 0:  # This loop will almost never run more than once for any reasonable mask ratio.
+            while (
+                num_retained_tokens == 0
+            ):  # This loop will almost never run more than once for any reasonable mask ratio.
                 retained_indices = compute_mask_indices(
                     (B, T),
                     padding_mask,
@@ -323,7 +359,7 @@ class MAE_AST(BaseFairseqModel):
                 retained_idx.append(cur_retained_idx)
                 features[i, cur_masked_idx] = self.encoder_mask_emb
                 masked_idx.append(cur_masked_idx)
-        elif self.task_cfg.mask_type == 'random_mask':
+        elif self.task_cfg.mask_type == "random_mask":
             for i in range(B):
                 idx = list(range(T))
                 random.shuffle(idx)
@@ -332,7 +368,7 @@ class MAE_AST(BaseFairseqModel):
                 cur_masked_idx = idx[num_retained_tokens:]
                 masked_idx.append(cur_masked_idx)
                 features[i, cur_masked_idx] = self.encoder_mask_emb
-        elif self.task_cfg.mask_type == 'random_mask_batched':
+        elif self.task_cfg.mask_type == "random_mask_batched":
             idx = list(range(T))
             random.shuffle(idx)
             cur_retained_idx = idx[:num_retained_tokens]
@@ -340,7 +376,9 @@ class MAE_AST(BaseFairseqModel):
             cur_masked_idx = idx[num_retained_tokens:]
             masked_idx = [cur_masked_idx]
             features[:, cur_masked_idx] = self.encoder_mask_emb
-        elif self.task_cfg.mask_type == 'chunk_mask':  # Copies SSAST code and goes to bottom right from uniform starting index
+        elif (
+            self.task_cfg.mask_type == "chunk_mask"
+        ):  # Copies SSAST code and goes to bottom right from uniform starting index
             cur_masked_idx = set()
             chunk_size = random.randrange(3, 5 + 1)
             chan_adjust = self.task_cfg.feature_dim // self.cfg.ast_kernel_stride_chan
@@ -350,12 +388,14 @@ class MAE_AST(BaseFairseqModel):
                 for t_offset in range(0, chunk_size):
                     for c_offset in range(0, chunk_size):
                         mask_cand = t_topleft + t_offset + chan_adjust * c_offset
-                        if (mask_cand < T):
+                        if mask_cand < T:
                             cur_masked_idx.add(mask_cand)
             cur_masked_idx = list(cur_masked_idx)
             cur_masked_idx = cur_masked_idx[:num_masked_tokens]
             cur_retained_idx = list(set(range(T)).difference(cur_masked_idx))
-            for i in range(B):  # Using same mask for whole batch because SSAST code is very slow
+            for i in range(
+                B
+            ):  # Using same mask for whole batch because SSAST code is very slow
                 retained_idx.append(cur_retained_idx)
                 masked_idx.append(cur_masked_idx)
                 features[i, cur_masked_idx] = self.encoder_mask_emb
@@ -363,14 +403,14 @@ class MAE_AST(BaseFairseqModel):
         return retained_idx, masked_idx, T - num_retained_tokens
 
     def forward(
-            self,
-            source: torch.Tensor,
-            padding_mask: Optional[torch.Tensor] = None,
-            mask: bool = True,
-            features_only: bool = False,
-            output_layer: Optional[int] = None,
-            is_decoder_finetune: bool = False,
-            is_input_prepatched: bool = False,
+        self,
+        source: torch.Tensor,
+        padding_mask: Optional[torch.Tensor] = None,
+        mask: bool = True,
+        features_only: bool = False,
+        output_layer: Optional[int] = None,
+        is_decoder_finetune: bool = False,
+        is_input_prepatched: bool = False,
     ) -> Dict[str, torch.Tensor]:
 
         # Checks whether the dataset was patched and normalized before-hand. is_input_prepatched == True for speed profiling during training.
@@ -385,23 +425,26 @@ class MAE_AST(BaseFairseqModel):
             source_patch = self.unfold(source).transpose(-1, -2)
 
         features = self.forward_features(source_patch)
-        if padding_mask is not None: # Reshape padding mask
+        if padding_mask is not None:  # Reshape padding mask
             padding_mask = self.forward_padding_mask(features, padding_mask)
-        if self.post_extract_proj is not None: # Project patches to vectors of size encoder_dim
+        if (
+            self.post_extract_proj is not None
+        ):  # Project patches to vectors of size encoder_dim
             features = self.post_extract_proj(features)
-        if mask: # additional regularization adopted from hubert
+        if mask:  # additional regularization adopted from hubert
             features = self.dropout_input(features)
 
         B, T, C = features.shape
 
         # Calculate retained_idx and masked_idx. Uses safe assumption that nothing is padded during pretraining
         if mask:
-            retained_idx, masked_idx, num_masked_tokens = self.forward_mask(features, padding_mask)
+            retained_idx, masked_idx, num_masked_tokens = self.forward_mask(
+                features, padding_mask
+            )
         else:
             retained_idx = []
             masked_idx = []
             num_masked_tokens = 0
-
 
         # Pre-Encoder Positional Embeddings
         if self.cfg.enc_conv_pos:
@@ -410,7 +453,6 @@ class MAE_AST(BaseFairseqModel):
         if self.cfg.enc_sine_pos:
             sine_pos = self.enc_sine_pos_embed(features, padding_mask)
             features = sine_pos + features
-
 
         # Remove masked tokens from features
         if mask:
@@ -429,38 +471,43 @@ class MAE_AST(BaseFairseqModel):
             x = features
             retained_padding_mask = padding_mask
 
-
         # Encoder forward pass + Early return for features
         x, encoder_hidden_states = self.encoder(
             x,
             padding_mask=retained_padding_mask,
             layer=None if output_layer is None else output_layer - 1,
         )
-        
 
         if not is_decoder_finetune and (features_only or not mask):
-            return {"x": x, "padding_mask": retained_padding_mask, "features": features, "hidden_states": encoder_hidden_states}
+            return {
+                "x": x,
+                "padding_mask": retained_padding_mask,
+                "features": features,
+                "hidden_states": encoder_hidden_states,
+            }
 
         if self.cfg.use_post_enc_proj:
             x = self.post_enc_proj(x)
 
-
         # Add masked tokens back
         if mask:
             full_x = torch.empty((B, T, C), device=x.device, dtype=x.dtype)
-            mask_indices = torch.zeros(torch.Size([B, T]), device=padding_mask.device, dtype=torch.bool)
+            mask_indices = torch.zeros(
+                torch.Size([B, T]), device=padding_mask.device, dtype=torch.bool
+            )
             if self.is_batched_mask:
                 full_x[:, retained_idx[0]] = x
                 full_x[:, masked_idx[0]] = self.decoder_mask_emb
                 mask_indices[:, masked_idx[0]] = True
             else:
-                for i, (cur_feat, ridx, midx) in enumerate(zip(x, retained_idx, masked_idx)):
+                for i, (cur_feat, ridx, midx) in enumerate(
+                    zip(x, retained_idx, masked_idx)
+                ):
                     full_x[i, ridx] = cur_feat
                     full_x[i, midx] = self.decoder_mask_emb
                     mask_indices[i, midx] = True
         else:
             full_x = x
-
 
         # Pre decoder positional embeddings
         if self.cfg.dec_conv_pos:
@@ -471,13 +518,18 @@ class MAE_AST(BaseFairseqModel):
             sine_pos = self.dec_sine_pos_embed(full_x, padding_mask)
             full_x = sine_pos + full_x
 
-
         # Decoder forward pass
-        x, decoder_hidden_states = self.decoder(full_x, padding_mask=padding_mask, layer=None)
+        x, decoder_hidden_states = self.decoder(
+            full_x, padding_mask=padding_mask, layer=None
+        )
 
         if is_decoder_finetune:
-            return {"x": x, "padding_mask": padding_mask, "features": features, "hidden_states": encoder_hidden_states + decoder_hidden_states}
-
+            return {
+                "x": x,
+                "padding_mask": padding_mask,
+                "features": features,
+                "hidden_states": encoder_hidden_states + decoder_hidden_states,
+            }
 
         # Construct linear projection logits and masked reconstruction targets
         x_masked_indices = x[mask_indices].view(B, num_masked_tokens, -1)
@@ -487,7 +539,6 @@ class MAE_AST(BaseFairseqModel):
 
         target_m_list = source_patch[mask_indices].view(B, num_masked_tokens, -1)
 
-
         result = {
             "logit_m_list_recon": logit_m_list_recon,
             "logit_m_list_class": logit_m_list_class,
@@ -496,14 +547,13 @@ class MAE_AST(BaseFairseqModel):
         }
         return result
 
-
     def extract_features(
-            self,
-            source: torch.Tensor,
-            padding_mask: Optional[torch.Tensor] = None,
-            mask: bool = False,
-            ret_conv: bool = False,
-            output_layer: Optional[int] = None,
+        self,
+        source: torch.Tensor,
+        padding_mask: Optional[torch.Tensor] = None,
+        mask: bool = False,
+        ret_conv: bool = False,
+        output_layer: Optional[int] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         res = self.forward(
             source,
@@ -687,15 +737,15 @@ class TransformerSentenceEncoderLayer(nn.Module):
     """
 
     def __init__(
-            self,
-            embedding_dim: float = 768,
-            ffn_embedding_dim: float = 3072,
-            num_attention_heads: float = 8,
-            dropout: float = 0.1,
-            attention_dropout: float = 0.1,
-            activation_dropout: float = 0.1,
-            activation_fn: str = "relu",
-            layer_norm_first: bool = False,
+        self,
+        embedding_dim: float = 768,
+        ffn_embedding_dim: float = 3072,
+        num_attention_heads: float = 8,
+        dropout: float = 0.1,
+        attention_dropout: float = 0.1,
+        activation_dropout: float = 0.1,
+        activation_fn: str = "relu",
+        layer_norm_first: bool = False,
     ) -> None:
 
         super().__init__()
@@ -728,12 +778,12 @@ class TransformerSentenceEncoderLayer(nn.Module):
         self.final_layer_norm = LayerNorm(self.embedding_dim)
 
     def forward(
-            self,
-            x: torch.Tensor,
-            self_attn_mask: torch.Tensor = None,
-            self_attn_padding_mask: torch.Tensor = None,
-            need_weights: bool = False,
-            att_args=None,
+        self,
+        x: torch.Tensor,
+        self_attn_mask: torch.Tensor = None,
+        self_attn_padding_mask: torch.Tensor = None,
+        need_weights: bool = False,
+        att_args=None,
     ):
         """
         LayerNorm is applied either before or after the self-attention/ffn
@@ -785,21 +835,22 @@ class TransformerSentenceEncoderLayer(nn.Module):
 
 
 class SinusoidalPositionalEncoding(nn.Module):
-
     def __init__(self, d_model: int, max_len: int = 480000):
         super().__init__()
         position = torch.arange(max_len).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
+        div_term = torch.exp(
+            torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model)
+        )
         pe = torch.zeros(1, max_len, d_model)
         pe[0, :, 0::2] = torch.sin(position * div_term)
         pe[0, :, 1::2] = torch.cos(position * div_term)
-        self.register_buffer('pe', pe)
+        self.register_buffer("pe", pe)
 
     def forward(self, x, padding_mask):
         """
         Args:
             x: Tensor, shape [bsz, seq_len, embedding_dim]
         """
-        pe = self.pe[:, :x.shape[1]].repeat((padding_mask.shape[0], 1, 1))
-        pe[padding_mask] = 0.
+        pe = self.pe[:, : x.shape[1]].repeat((padding_mask.shape[0], 1, 1))
+        pe[padding_mask] = 0.0
         return pe
