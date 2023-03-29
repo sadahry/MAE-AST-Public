@@ -13,6 +13,7 @@ import numpy as np
 
 import torch
 import torch.nn.functional as F
+from torchvision.transforms.functional import resize
 from fairseq.data import data_utils
 from fairseq.data.fairseq_dataset import FairseqDataset
 
@@ -235,7 +236,8 @@ class MAE_AST_Dataset(FairseqDataset):
                 sample_frequency=self.sample_rate,
                 use_energy=False,
             )  # (time, freq)
-        feat = feat[:, : self.feature_dim]
+        shape_to_resize = (feat.size(0), self.feature_dim)
+        feat = resize(feat.unsqueeze(0), shape_to_resize).squeeze(0)
         if self.deltas:
             feat = feat.transpose(0, 1)  # (freq, time)
             deltas = torchaudio.functional.compute_deltas(feat)
