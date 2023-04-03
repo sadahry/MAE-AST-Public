@@ -221,7 +221,7 @@ class MAE_AST_Dataset(FairseqDataset):
         wav = wav.view(1, -1)
         if self.feature_type == "spectrogram":
             feat = torchaudio.compliance.kaldi.spectrogram(
-                waveform=wav, sample_frequency=self.sample_rate
+                waveform=wav, sample_frequency=self.sample_rate, window_type="hanning"
             )  # (time, freq)
         elif self.feature_type == "fbank":
             feat = torchaudio.compliance.kaldi.fbank(
@@ -229,12 +229,14 @@ class MAE_AST_Dataset(FairseqDataset):
                 sample_frequency=self.sample_rate,
                 use_energy=False,
                 num_mel_bins=self.feature_dim,
+                window_type="hanning",
             )  # (time, freq)
         else:
             feat = torchaudio.compliance.kaldi.mfcc(
                 waveform=wav,
                 sample_frequency=self.sample_rate,
                 use_energy=False,
+                window_type="hanning",
             )  # (time, freq)
         shape_to_resize = (feat.size(0), self.feature_dim)
         feat = resize(feat.unsqueeze(0), shape_to_resize).squeeze(0)
