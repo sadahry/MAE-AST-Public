@@ -73,6 +73,19 @@ class MAE_AST_Pretraining_Config(FairseqDataclass):
         metadata={"help": "choose from ['wav', 'spectrogram', 'fbank', 'mfcc']"},
     )
 
+    use_transform_to_spectrogram: Optional[bool] = field(
+        default=False,
+    )
+    win_length: Optional[int] = field(
+        default=400,
+    )
+    hop_length: Optional[int] = field(
+        default=160,
+    )
+    n_fft: Optional[int] = field(
+        default=512,
+    )
+
     feature_rate: Optional[int] = field(
         default=100,
         metadata={
@@ -158,6 +171,10 @@ class MAE_AST_Pretraining_Task(FairseqTask):
             normalize=self.cfg.normalize,
             random_crop=self.cfg.random_crop,
             feature_type=self.cfg.feature_type,
+            use_transform_to_spectrogram=self.cfg.use_transform_to_spectrogram,
+            win_length=self.cfg.win_length,
+            hop_length=self.cfg.hop_length,
+            n_fft=self.cfg.n_fft,
             feature_dim=self.cfg.feature_dim,
             deltas=self.cfg.deltas,
             feature_rate=self.cfg.feature_rate,

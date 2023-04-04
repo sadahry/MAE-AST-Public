@@ -63,6 +63,10 @@ class MAE_AST_Dataset(FairseqDataset):
         normalize: bool = False,
         random_crop: bool = False,
         feature_type: str = "wav",
+        use_transform_to_spectrogram: bool = False,
+        win_length: int = 400,
+        hop_length: int = 160,
+        n_fft: int = 512,
         feature_dim: int = 36,
         deltas: bool = True,
         feature_rate: int = 100,
@@ -70,9 +74,12 @@ class MAE_AST_Dataset(FairseqDataset):
         self.audio_root, self.audio_names, inds, tot, self.sizes = load_audio(
             manifest_path, max_keep_sample_size, min_keep_sample_size
         )
-        assert feature_type in ["wav", "spectrogram", "fbank", "mfcc"], feature_type
         self.feature_rate = feature_rate
         self.feature_type = feature_type
+        self.use_transform_to_spectrogram = use_transform_to_spectrogram
+        self.win_length = win_length
+        self.hop_length = hop_length
+        self.n_fft = n_fft
         self.feature_dim = feature_dim
         self.deltas = deltas
         self.sample_rate = sample_rate
@@ -219,6 +226,19 @@ class MAE_AST_Dataset(FairseqDataset):
             wav = torchaudio.functional.resample(wav, cur_sample_rate, self.sample_rate)
 
         wav = wav.view(1, -1)
+        if self.use_transform_to_spectrogram:
+            from transform_to_spectrogram import transform_to_spectrogram
+
+            return transform_to_spectrogram(
+                wav,
+                self.feature_type,
+                sample_rate=self.sample_rate,
+                win_length=self.win_length,
+                hop_length=self.hop_length,
+                n_fft=self.n_fft,
+                output_channel_dim=self.feature_dim,
+            )
+
         if self.feature_type == "spectrogram":
             feat = torchaudio.compliance.kaldi.spectrogram(
                 waveform=wav, sample_frequency=self.sample_rate, window_type="hanning"
