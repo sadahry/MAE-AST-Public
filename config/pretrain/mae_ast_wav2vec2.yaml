@@ -35,6 +35,12 @@ task:
   normalize: false # must be consistent with extractor
   deltas: false
 
+  # custom settings
+  use_transform_to_spectrogram: False
+  win_length: 400
+  hop_length: 160
+  n_fft: 512
+
 dataset:
   # num_workers: 6
   num_workers: 1
