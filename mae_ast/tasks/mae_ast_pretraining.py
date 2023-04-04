@@ -23,7 +23,9 @@ from omegaconf import MISSING
 
 logger = logging.getLogger(__name__)
 
-MASK_TYPE_CHOICES = ChoiceEnum(["retain_spans", "random_mask", "random_mask_batched", "chunk_mask"])
+MASK_TYPE_CHOICES = ChoiceEnum(
+    ["retain_spans", "random_mask", "random_mask_batched", "chunk_mask"]
+)
 
 
 @dataclass
@@ -34,7 +36,7 @@ class MAE_AST_Pretraining_Config(FairseqDataclass):
         default=16_000,
         metadata={
             "help": "target sample rate. audio files will be up/down "
-                    "sampled to this rate"
+            "sampled to this rate"
         },
     )
     normalize: bool = field(
@@ -67,42 +69,46 @@ class MAE_AST_Pretraining_Config(FairseqDataclass):
     )
 
     feature_type: Optional[str] = field(
-        default='wav',
-        metadata={"help": "choose from ['wav', 'spectrogram', 'fbank', 'mfcc']"}
+        default="wav",
+        metadata={"help": "choose from ['wav', 'spectrogram', 'fbank', 'mfcc']"},
     )
 
     feature_rate: Optional[int] = field(
         default=100,
         metadata={
-            "help": "rate of feature input to the transformer, if use wav, this arg is omited, else if use spectrogram/fbank/mfcc, the default is 100, i.e. 1s audio gives 100 frames. the label rate of using MFCC is also 100"}
+            "help": "rate of feature input to the transformer, if use wav, this arg is omited, else if use spectrogram/fbank/mfcc, the default is 100, i.e. 1s audio gives 100 frames. the label rate of using MFCC is also 100"
+        },
     )
 
     feature_dim: Optional[int] = field(
         default=100,
         metadata={
-            "help": "dim feature input to the transformer, if use wav, this arg is omited, else if use spectrogram/fbank/mfcc, the default is 80"}
+            "help": "dim feature input to the transformer, if use wav, this arg is omited, else if use spectrogram/fbank/mfcc, the default is 80"
+        },
     )
 
     deltas: Optional[bool] = field(
         default=True,
         metadata={
-            "help": "whether or not add delta and delta-delta to the feature, only effective for spectrogram/fbank/mfcc"}
+            "help": "whether or not add delta and delta-delta to the feature, only effective for spectrogram/fbank/mfcc"
+        },
     )
 
     mask_spans: Optional[bool] = field(
         default=False,
-        metadata={"help": "mask random spans, same as that is used in HuBERT and w2v2"}
+        metadata={"help": "mask random spans, same as that is used in HuBERT and w2v2"},
     )
 
     mask_type: MASK_TYPE_CHOICES = field(
-        default='random_mask',
-        metadata={"help":
-                      """Determine type of mask for MAE pretraining. 
+        default="random_mask",
+        metadata={
+            "help": """Determine type of mask for MAE pretraining. 
                       -retain_spans: Only for frame data. Wav2Vec2 like masking.
                       -random_mask: Perform masking on completely random tokens. No chunking. Used in MAE
                       -random_mask_batched: random_mask with the same mask across the batch.
                       -chunk_mask: Perform masking on chunks until mask_spans hit. From SSAST. Same across batch for speed.
-                          """}
+                          """
+        },
     )
 
 
@@ -111,8 +117,8 @@ class MAE_AST_Pretraining_Task(FairseqTask):
     cfg: MAE_AST_Pretraining_Config
 
     def __init__(
-            self,
-            cfg: MAE_AST_Pretraining_Config,
+        self,
+        cfg: MAE_AST_Pretraining_Config,
     ) -> None:
         super().__init__(cfg)
 
@@ -135,7 +141,7 @@ class MAE_AST_Pretraining_Task(FairseqTask):
 
     @classmethod
     def setup_task(
-            cls, cfg: MAE_AST_Pretraining_Config, **kwargs
+        cls, cfg: MAE_AST_Pretraining_Config, **kwargs
     ) -> "MAE_AST_Pretraining_Task":
         return cls(cfg)
 
@@ -154,7 +160,7 @@ class MAE_AST_Pretraining_Task(FairseqTask):
             feature_type=self.cfg.feature_type,
             feature_dim=self.cfg.feature_dim,
             deltas=self.cfg.deltas,
-            feature_rate=self.cfg.feature_rate
+            feature_rate=self.cfg.feature_rate,
         )
 
     def max_positions(self) -> Tuple[int, int]:
