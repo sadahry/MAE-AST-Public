@@ -29,7 +29,7 @@ task:
   max_sample_size: 250000
   min_sample_size: 32000
   feature_rate: 100
-  feature_dim: 128
+  feature_dim: 256  # twice
   pad_audio: true
   random_crop: true
   normalize: false # must be consistent with extractor
@@ -37,9 +37,9 @@ task:
 
   # custom settings
   use_transform_to_spectrogram: False
-  win_length: 400
-  hop_length: 160
-  n_fft: 512
+  win_length: 800  # twice
+  hop_length: 320  # twice
+  n_fft: 1024  # twice
 
 dataset:
   # num_workers: 6
@@ -83,15 +83,15 @@ model:
   decoder_layers: 2
   # Set the random mask probability to 0.74 for an average of 50% masking. 
   random_mask_prob: 0.74
-  mask_length: 10
+  mask_length: 5  # half
   enc_conv_pos: false
   enc_sine_pos: true
   dec_conv_pos: false
   dec_sine_pos: true
-  ast_kernel_size_chan: 128
-  ast_kernel_size_time: 2
-  ast_kernel_stride_chan: 128
-  ast_kernel_stride_time: 2
+  ast_kernel_size_chan: 256  # twice
+  ast_kernel_size_time: 1  # half
+  ast_kernel_stride_chan: 256  # twice
+  ast_kernel_stride_time: 1  # half
 
 hydra:
   job:
