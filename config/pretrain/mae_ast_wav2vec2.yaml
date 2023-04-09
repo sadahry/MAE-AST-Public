@@ -48,6 +48,7 @@ dataset:
   skip_invalid_size_inputs_valid_test: true
   validate_interval: 5
   validate_interval_updates: 10000
+  disable_validation: true
 
 criterion:
   _name: mae_ast
