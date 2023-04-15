@@ -311,13 +311,12 @@ class MAE_AST(BaseFairseqModel):
         self,
         features: torch.Tensor,
         padding_mask: torch.Tensor,
-        feature_dim=128,
     ) -> torch.Tensor:
         if padding_mask[:, -1].sum() == 0:  # Fast exit during training if not necessary
             return padding_mask.new_zeros(features.shape[:2])
 
         non_zero_count = padding_mask.size(-1) - padding_mask.sum(dim=-1)
-        num_patches_over_channel = feature_dim // self.cfg.ast_kernel_size_chan
+        num_patches_over_channel = features.size(-1) // self.cfg.ast_kernel_size_chan
         padding_mask_indices = (
             ((non_zero_count - 1) // self.cfg.ast_kernel_size_time) + 1
         ) * num_patches_over_channel
