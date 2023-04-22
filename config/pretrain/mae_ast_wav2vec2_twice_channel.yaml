@@ -81,8 +81,8 @@ model:
   decoder_layerdrop: 0.0
   encoder_layers: 12
   decoder_layers: 2
-  # Set the random mask probability to 0.645 for an average of 50% masking when mask_length=5. 
-  random_mask_prob: 0.645
+  # Set the random mask probability to 0.70 for an average of 50% masking when mask_length=5. 
+  random_mask_prob: 0.70
   mask_length: 5  # half
   enc_conv_pos: false
   enc_sine_pos: true
