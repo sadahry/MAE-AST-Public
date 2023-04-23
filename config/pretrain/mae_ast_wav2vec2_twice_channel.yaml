@@ -44,7 +44,7 @@ task:
 dataset:
   # num_workers: 6
   num_workers: 1
-  max_tokens: 4194304  # half of 8388608  # 2^23 TODO why?
+  max_tokens: 8388608  # 2^23 TODO why?
   skip_invalid_size_inputs_valid_test: true
   validate_interval: 5
   validate_interval_updates: 10000
